@@ -37,7 +37,7 @@ INDICATORS = {
               "Share of the population using safely managed drinking water", "water"),
     "smoking": ("share-of-adults-who-smoke.csv",
                 "Share of adults who smoke or use tobacco (age-standardized)", "smoking"),
-    "reach": ("uhc-coverage-index.csv",
+    "reach": ("universal-health-coverage-index.csv",
               "UHC Service Coverage Index (SDG 3.8.1)", "reach"),
     "gdp": ("gdp-per-capita-worldbank.csv", "GDP per capita", "gdp"),
 }
@@ -57,6 +57,23 @@ LABELS = {
 
 PILLARS = ["child_mort", "maternal", "dtp3", "water", "smoking", "obesity"]
 MODEL_FEATURES = ["log_spend", "child_mort", "maternal", "water", "smoking", "obesity"]
+
+# spending bands for the diminishing-returns bar chart
+PLATEAU_BANDS = [(0, 200, "<$200"), (200, 500, "$200-500"), (500, 1000, "$500-1k"),
+                 (1000, 2000, "$1k-2k"), (2000, 4000, "$2k-4k"),
+                 (4000, 8000, "$4k-8k"), (8000, 1e12, ">$8k")]
+
+
+def plateau_table(base):
+    """Average life expectancy per spending band, in order, with country counts."""
+    rows = []
+    for lo, hi, lab in PLATEAU_BANDS:
+        sub = base[(base["spend"] >= lo) & (base["spend"] < hi)]
+        if len(sub):
+            rows.append({"band": lab, "mean_LE": sub["LE"].mean(), "n": len(sub)})
+    out = pd.DataFrame(rows)
+    out["gain"] = out["mean_LE"].diff()
+    return out
 
 
 def _iso(df):
@@ -127,7 +144,10 @@ def build_cross_section(year):
         return d.sort_values("Year").groupby("Code").tail(1).set_index("Code")[new]
 
     for key, (fn, col, new) in INDICATORS.items():
-        base[key] = latest(fn, col, new)
+        try:
+            base[key] = latest(fn, col, new)
+        except (FileNotFoundError, KeyError, IndexError):
+            base[key] = np.nan
 
     ob = _iso(_read("share-of-adults-defined-as-obese.csv"))
     ocol = _obesity_col(ob)

@@ -177,16 +177,33 @@ with tab_dash:
             name="Efficient overperformers",
             text=over["Entity"], hoverinfo="text"))
 
-    # plateau callout: shade where extra spending stops buying years
-    fig.add_vrect(x0=2500, x1=base["spend"].max() * 1.15,
-                  fillcolor="#888780", opacity=0.06, line_width=0,
-                  annotation_text="returns plateau \u2192 extra spending buys almost no years",
-                  annotation_position="top right",
-                  annotation=dict(font_size=12, font_color="#6b7280"))
-
     fig.update_layout(height=460, legend=dict(orientation="h", y=-0.25),
                       margin=dict(l=10, r=10, t=10, b=10))
     st.plotly_chart(fig, use_container_width=True)
+
+    # the plateau, shown with the data: average life expectancy by spend band
+    st.markdown("##### Where the returns run out")
+    pl = dp.plateau_table(base)
+    pbar = px.bar(pl, x="band", y="mean_LE", text="mean_LE",
+                  color="mean_LE", color_continuous_scale="Blues",
+                  labels={"band": "Health spend per capita (band)",
+                          "mean_LE": "Avg life expectancy"})
+    pbar.update_traces(texttemplate="%{text:.1f}", textposition="outside",
+                       cliponaxis=False)
+    pbar.update_layout(height=300, coloraxis_showscale=False,
+                       yaxis_range=[max(0, pl["mean_LE"].min() - 8),
+                                    pl["mean_LE"].max() + 3],
+                       margin=dict(l=10, r=10, t=20, b=10))
+    st.plotly_chart(pbar, use_container_width=True)
+    low = pl["mean_LE"].iloc[0]
+    top = pl["mean_LE"].iloc[-1]
+    g_last = pl["gain"].iloc[-1] if len(pl) > 1 else 0
+    st.caption(f"Each bar averages the life expectancy of countries in that spending "
+               f"band. It climbs steeply from about {low:.0f} years in the "
+               f"lowest-spending countries to about {top:.0f} in high-spending ones, "
+               f"then flattens: the top band ({pl['band'].iloc[-1]}, which includes the "
+               f"US) sits only about {g_last:.1f} years above the band below it. Past a "
+               f"few thousand dollars per person, more spending buys almost no extra years.")
 
     st.divider()
 
