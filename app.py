@@ -96,18 +96,42 @@ tab_dash, tab_model = st.tabs(["Dashboard", "Model"])
 # DASHBOARD TAB
 # ============================================================================
 with tab_dash:
-    # --- KPI row ---
+    # --- KPI row (outlined cards) ---
     us_row = base[base["Code"] == "USA"]
     us_gap = float(us_row["residual"].iloc[0]) if len(us_row) else np.nan
-    gender_gap = (flt["LE_women"] - flt["LE_men"]).mean()
+    women_m = flt["LE_women"].mean()
+    men_m = flt["LE_men"].mean()
+    gender_gap = women_m - men_m
 
-    k1, k2, k3, k4 = st.columns(4)
-    k1.metric("Avg life expectancy", f"{flt['LE'].mean():.1f} yrs")
-    k2.metric("Median health spend", f"${flt['spend'].median():,.0f}")
-    k3.metric("US efficiency gap", f"{us_gap:+.1f} yrs",
-              help="Actual minus what the global curve predicts for US spending.")
-    k4.metric("Gender gap (W\u2212M)", f"{gender_gap:+.1f} yrs")
+    def card(label, value, sub, dot, num_color="#1f2937"):
+        return f"""<div style="border:1px solid #e8e8e8;border-radius:10px;
+            padding:16px 18px;background:#fff;box-shadow:0 1px 2px rgba(0,0,0,.04)">
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <span style="color:#6b7280;font-size:13px">{label}</span>
+            <span style="width:9px;height:9px;border-radius:50%;background:{dot};
+                  display:inline-block"></span>
+          </div>
+          <div style="font-size:30px;font-weight:700;color:{num_color};
+                line-height:1.15;margin-top:8px">{value}</div>
+          <div style="font-size:12px;color:#9ca3af;margin-top:4px;
+                min-height:18px">{sub}</div>
+        </div>"""
 
+    c = st.columns(4)
+    c[0].markdown(card("Avg life expectancy", f"{flt['LE'].mean():.1f} yrs",
+                       "across countries shown", "#185FA5"), unsafe_allow_html=True)
+    c[1].markdown(card("Median health spend", f"${flt['spend'].median():,.0f}",
+                       "per person, int$", "#0F6E56"), unsafe_allow_html=True)
+    c[2].markdown(card("US efficiency gap", f"{us_gap:+.1f} yrs",
+                       "vs what its spending predicts", "#D85A30",
+                       num_color="#D85A30"), unsafe_allow_html=True)
+    c[3].markdown(card(
+        "Gender gap (W\u2212M)", f"{gender_gap:+.1f} yrs",
+        f'<span style="color:#D4537E;font-weight:600">\u2640 {women_m:.1f}</span>'
+        f'&nbsp;&nbsp;<span style="color:#185FA5;font-weight:600">\u2642 {men_m:.1f}</span>',
+        "#D4537E"), unsafe_allow_html=True)
+
+    st.write("")
     st.divider()
 
     # --- Beat 1: diminishing returns hero ---
@@ -153,6 +177,13 @@ with tab_dash:
             name="Efficient overperformers",
             text=over["Entity"], hoverinfo="text"))
 
+    # plateau callout: shade where extra spending stops buying years
+    fig.add_vrect(x0=2500, x1=base["spend"].max() * 1.15,
+                  fillcolor="#888780", opacity=0.06, line_width=0,
+                  annotation_text="returns plateau \u2192 extra spending buys almost no years",
+                  annotation_position="top right",
+                  annotation=dict(font_size=12, font_color="#6b7280"))
+
     fig.update_layout(height=460, legend=dict(orientation="h", y=-0.25),
                       margin=dict(l=10, r=10, t=10, b=10))
     st.plotly_chart(fig, use_container_width=True)
@@ -191,9 +222,17 @@ with tab_dash:
     pillar_chart(p2, "water", "Environment",
                  "More safe water \u2192 higher life expectancy. "
                  "Source: proportion-using-safely-managed-drinking-water.csv")
-    pillar_chart(p3, "obesity", "Behavioral (high-income)",
-                 "Among high spenders, more obesity \u2192 lower life expectancy. "
-                 "Source: share-of-adults-defined-as-obese.csv", hi_income=True)
+    pillar_chart(p3, "reach", "Reach",
+                 "More health-service coverage \u2192 higher life expectancy. "
+                 "Source: uhc-coverage-index.csv")
+
+    st.markdown(
+        """<div style="border-left:4px solid #185FA5;background:#f4f8fc;
+        border-radius:0 8px 8px 0;padding:12px 16px;margin-top:8px">
+        <b>The consulting takeaway:</b> targeted investment in these levers
+        &mdash; preventing child deaths, clean water, and broad service
+        coverage &mdash; is what buys years of life. Raw spending on its own
+        does not.</div>""", unsafe_allow_html=True)
 
     st.divider()
 

@@ -37,6 +37,8 @@ INDICATORS = {
               "Share of the population using safely managed drinking water", "water"),
     "smoking": ("share-of-adults-who-smoke.csv",
                 "Share of adults who smoke or use tobacco (age-standardized)", "smoking"),
+    "reach": ("uhc-coverage-index.csv",
+              "UHC Service Coverage Index (SDG 3.8.1)", "reach"),
     "gdp": ("gdp-per-capita-worldbank.csv", "GDP per capita", "gdp"),
 }
 
@@ -48,6 +50,7 @@ LABELS = {
     "water": "Safely managed drinking water (%)",
     "smoking": "Adult smoking (%)",
     "obesity": "Adult obesity (%)",
+    "reach": "Health service coverage (UHC index, 0-100)",
     "gdp": "GDP per capita (int$)",
     "log_spend": "Health spend per capita (log)",
 }
